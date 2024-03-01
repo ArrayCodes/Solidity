@@ -18,7 +18,7 @@ contract P2EFarm {
     uint256 public constant CLAIM_INTERVAL = 1 seconds; // Интервал времени между клеймами
     uint256 public constant REWARD_RATE_UPGRADE_COST = 100 * DECIMALS_FIX; // Стоимость улучшения REWARD_RATE
     uint256 public constant MAX_CAPACITY_UPGRADE_COST = 200 * DECIMALS_FIX; // Стоимость улучшения MAX_CAPACITY
-    uint256 public constant MAX_FARM_AMOUNT = 5; // Стоимость улучшения MAX_CAPACITY
+    uint256 public constant MAX_FARM_AMOUNT = 5; // Максимальное количество ферм одного пользователя 
 
 
     mapping(uint256 => Farm) public allFarms;
@@ -221,7 +221,7 @@ contract P2EFarm {
     }
 
     receive() external payable {
-        revert("Please use the buy function to purchase albums!");
+        revert("Please use CRT token to buy and upgrade farms!");
     }
 
     fallback() external {
