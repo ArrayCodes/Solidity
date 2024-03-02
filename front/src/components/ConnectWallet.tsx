@@ -20,8 +20,8 @@ const ConnectWallet: React.FunctionComponent<ConnectWalletProps> = ({
         )}
       </div>
 
-      <p>Please connect your account...</p>
-      <button type="button" onClick={connectWallet}>
+      <p className="text">Please connect your account...</p>
+      <button className="btn btn_yellow" type="button" onClick={connectWallet}>
         Connect wallet
       </button>
     </>

@@ -11,6 +11,8 @@ import ConnectWallet from "@/components/ConnectWallet";
 import WaitingForTransactionMessage from "@/components/WaitingForTransactionMessage";
 import TransactionErrorMessage from "@/components/TransactionErrorMessage";
 
+import metamaskIcon from '@/assets/images/icons/MetaMask_Fox.svg.png'
+
 const SEPOLIA_NETWORK_ID = "0xaa36a7";
 const P2E_FARM_ADDRESS = "0xEC23e89F986522Ce570f13413C069EeF7536E70D"
 const TOKEN_ADDRESS = "0x0388DdFE3627F48b084782EC291A4D00c6f08b6a"
@@ -78,11 +80,12 @@ export default function Home() {
   useEffect(() => {
     const interval = setInterval(() => {
       setIndex(new Date().getTime());
-    }, 1000);
+    }, 1);
     return () => clearInterval(interval);
   }, []);
 
   const _connectWallet = async () => {
+    //addSuccess('Вы успешно подключились')
     if (window.ethereum === undefined) {
       setNetworkError("Please install Metamask!");
 
@@ -107,13 +110,66 @@ export default function Home() {
         }
         
         await _initialize(ethers.getAddress(newAccount));
-        
       }
     );
 
     window.ethereum.on("chainChanged", ([_networkId]: any) => {
       _resetState();
     });
+  };
+
+  interface AlertProps {
+    id: number;
+    type: string;
+    message: string;
+    onClose: (id: number) => void;
+  }
+  
+  const Alert: React.FC<AlertProps> = ({ id, type, message, onClose }) => {
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        onClose(id);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }, [id, onClose]);
+  
+    const handleClose = () => {
+      onClose(id);
+    };
+  
+    return (
+      <div className={`alert ${type}`}>
+        <span>{message}</span>
+        <button className="close-alert" onClick={handleClose}>
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="Menu / Close_LG"> <path id="Vector" d="M21 21L12 12M12 12L3 3M12 12L21.0001 3M12 12L3 21.0001" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g> </g></svg>
+        </button>
+      </div>
+    );
+  };
+
+  const [alerts, setAlerts] = useState<{ id: number; type: string; message: string }[]>([]);
+
+  const addError = (message: string) => {
+    const newId = alerts.length ? alerts[alerts.length - 1].id + 1 : 1;
+    const newAlerts = [...alerts, { id: newId, type: "error", message }];
+    if (newAlerts.length > 5) {
+      newAlerts.shift(); // Удаляем первый элемент, если количество больше 5
+    }
+    setAlerts(newAlerts);
+  };
+
+  const addSuccess = (message: string) => {
+    const newId = alerts.length ? alerts[alerts.length - 1].id + 1 : 1;
+    const newAlerts = [...alerts, { id: newId, type: "success", message }];
+    if (newAlerts.length > 5) {
+      newAlerts.shift(); // Удаляем первый элемент, если количество больше 5
+    }
+    setAlerts(newAlerts);
+  };
+
+  const removeAlert = (id: number) => {
+    const filteredAlerts = alerts.filter((alert) => alert.id !== id);
+    setAlerts(filteredAlerts);
   };
 
   const _initialize = async (selectedAccount: string) => {
@@ -140,7 +196,8 @@ export default function Home() {
       return true;
     }
 
-    setNetworkError("Please connect to Sepolia network (https://sepolia.infura.io/v3/)!");
+    // addError("Произошла ошибка, повторите попытку!");
+    // setError("Please connect to Sepolia network (https://sepolia.infura.io/v3/)!");
 
     return false;
   };
@@ -174,7 +231,6 @@ export default function Home() {
     if (error.data) {
       return error.data.message;
     }
-
     return error.message;
   };
 
@@ -222,6 +278,7 @@ export default function Home() {
       await response.wait();
 
     } catch (err) {
+      addError("Произошла ошибка, повторите попытку!");
       console.error(err);
 
       setTransactionError(err);
@@ -331,28 +388,43 @@ export default function Home() {
   const availableFarms = () => {
     const farmsList = farms.map((farm) => {
       return (
-        <li key={farm.idFarm}>
-          <>
-          <br></br>
-
-            Farm ID: {farm.idFarm.toString()}
-            <br />
-            Capacity Level: {farm.capacityLvl.toString()} 
-            &nbsp;
-            <button onClick={(e) => _handleUpgradeCapacityLevel(farm.idFarm, farm.capacityLvl, e)}>  Upgrade </button>
-            <br />
-            Rate Level: {farm.rateLvl.toString()}
-            &nbsp;
-            <button onClick={(e) => _handleUpgradeRateLevel(farm.idFarm, farm.rateLvl, e)}> Upgrade </button>
-            <br />
-            In capacity : {_calculateCapacity(farm).toString()}
-            &nbsp;
-            <button onClick={(e) => _handleClaimRewards(farm.idFarm,e)}> Claim </button>
-            <br />
+        <li className="farm" key={farm.idFarm}>
+          <button className="farm__sale" onClick={(e) => _handleSellFarm(farm.idFarm,e)}>$</button>
+          <div className="farm__content">
+            <div className="farm__top">
+              <div className="farm__icon">
+                <svg height="60px" width="60px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 511.787 511.787"  fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g transform="translate(1 1)"> <polygon style={{fill:'#1CD759'}} points="434.093,186.52 389.72,108.867 254.893,41.453 120.067,108.867 75.693,186.52 33.027,186.52 91.907,84.12 254.893,7.32 417.88,84.12 476.76,186.52 "></polygon> <polygon style={{fill:'#FD9808'}} points="389.72,108.867 254.893,41.453 120.067,108.867 75.693,186.52 58.627,186.52 58.627,502.253 451.16,502.253 451.16,186.52 434.093,186.52 "></polygon> <path style={{fill:'#FFDD09'}} d="M367.533,108.867l-125.44-67.413l-125.44,67.413L74.84,186.52H58.627v315.733H425.56v-299.52 c0-4.267-1.707-8.533-4.267-11.093c-10.24-11.093-21.333-22.187-28.16-35.84L367.533,108.867z"></path> <polygon style={{fill:'#33A9F8'}} points="178.093,502.253 331.693,502.253 331.693,348.653 178.093,348.653 "></polygon> <g> <polygon style={{fill:'#54C9FD'}} points="178.093,502.253 306.093,502.253 306.093,348.653 178.093,348.653 "></polygon> <polygon style={{fill:'#54C9FD'}} points="135.427,271.853 203.693,271.853 203.693,203.587 135.427,203.587 "></polygon> <polygon style={{fill:'#54C9FD'}} points="306.093,271.853 374.36,271.853 374.36,203.587 306.093,203.587 "></polygon> </g> <path d="M476.76,195.053h-42.667c-3.413,0-5.973-1.707-7.68-4.267l-43.52-75.093l-128-64.853l-128,64.853l-43.52,75.093 c-1.707,2.56-4.267,4.267-7.68,4.267H33.027c-3.413,0-5.973-1.707-7.68-4.267c-1.707-2.56-1.707-5.973,0-8.533l58.88-102.4 c0.853-1.707,2.56-2.56,3.413-3.413l162.987-76.8c2.56-0.853,5.12-0.853,7.68,0l163.84,76.8c1.707,0.853,2.56,1.707,3.413,3.413 l58.88,102.4c1.707,2.56,1.707,5.973,0,8.533C482.733,193.347,480.173,195.053,476.76,195.053z M439.213,177.987h23.04 l-50.347-87.04l-157.013-74.24L97.88,90.947l-50.347,87.04h23.04l41.813-73.387c0.853-1.707,1.707-2.56,3.413-3.413l134.827-67.413 c2.56-0.853,5.12-0.853,7.68,0l134.827,67.413c1.707,0.853,2.56,1.707,3.413,3.413L439.213,177.987z"></path> <path d="M331.693,510.787h-153.6c-5.12,0-8.533-3.413-8.533-8.533v-153.6c0-5.12,3.413-8.533,8.533-8.533h153.6 c5.12,0,8.533,3.413,8.533,8.533v153.6C340.227,507.373,336.813,510.787,331.693,510.787z M186.627,493.72H323.16V357.187H186.627 V493.72z"></path> <path d="M203.693,280.387h-68.267c-5.12,0-8.533-3.413-8.533-8.533v-68.267c0-5.12,3.413-8.533,8.533-8.533h68.267 c5.12,0,8.533,3.413,8.533,8.533v68.267C212.227,276.973,208.813,280.387,203.693,280.387z M143.96,263.32h51.2v-51.2h-51.2V263.32 z"></path> <path d="M331.693,510.787c-2.56,0-4.267-0.853-5.973-2.56l-153.6-153.6c-3.413-3.413-3.413-8.533,0-11.947 c3.413-3.413,8.533-3.413,11.947,0l153.6,153.6c3.413,3.413,3.413,8.533,0,11.947C335.96,509.933,334.253,510.787,331.693,510.787z "></path> <path d="M178.093,510.787c-2.56,0-4.267-0.853-5.973-2.56c-3.413-3.413-3.413-8.533,0-11.947l153.6-153.6 c3.413-3.413,8.533-3.413,11.947,0c3.413,3.413,3.413,8.533,0,11.947l-153.6,153.6C182.36,509.933,180.653,510.787,178.093,510.787 z"></path> <path d="M135.427,280.387h-8.533c-5.12,0-8.533-3.413-8.533-8.533c0-5.12,3.413-8.533,8.533-8.533h8.533 c5.12,0,8.533,3.413,8.533,8.533C143.96,276.973,140.547,280.387,135.427,280.387z"></path> <path d="M212.227,280.387h-8.533c-5.12,0-8.533-3.413-8.533-8.533c0-5.12,3.413-8.533,8.533-8.533h8.533 c5.12,0,8.533,3.413,8.533,8.533C220.76,276.973,217.347,280.387,212.227,280.387z"></path> <path d="M374.36,280.387h-68.267c-5.12,0-8.533-3.413-8.533-8.533v-68.267c0-5.12,3.413-8.533,8.533-8.533h68.267 c5.12,0,8.533,3.413,8.533,8.533v68.267C382.893,276.973,379.48,280.387,374.36,280.387z M314.627,263.32h51.2v-51.2h-51.2V263.32z "></path> <path d="M306.093,280.387h-8.533c-5.12,0-8.533-3.413-8.533-8.533c0-5.12,3.413-8.533,8.533-8.533h8.533 c5.12,0,8.533,3.413,8.533,8.533C314.627,276.973,311.213,280.387,306.093,280.387z"></path> <path d="M382.893,280.387h-8.533c-5.12,0-8.533-3.413-8.533-8.533c0-5.12,3.413-8.533,8.533-8.533h8.533 c5.12,0,8.533,3.413,8.533,8.533C391.427,276.973,388.013,280.387,382.893,280.387z"></path> <path d="M280.493,143.853h-51.2c-5.12,0-8.533-3.413-8.533-8.533v-17.067c0-18.773,15.36-34.133,34.133-34.133 s34.133,15.36,34.133,34.133v17.067C289.027,140.44,285.613,143.853,280.493,143.853z M237.827,126.787h34.133v-8.533 c0-9.387-7.68-17.067-17.067-17.067c-9.387,0-17.067,7.68-17.067,17.067V126.787z"></path> <path d="M451.16,510.787H58.627c-5.12,0-8.533-3.413-8.533-8.533V186.52c0-5.12,3.413-8.533,8.533-8.533h11.947l41.813-73.387 c0.853-1.707,1.707-2.56,3.413-3.413l134.827-67.413c2.56-0.853,5.12-0.853,7.68,0l134.827,67.413 c1.707,0.853,2.56,1.707,3.413,3.413l41.813,73.387h12.8c5.12,0,8.533,3.413,8.533,8.533v315.733 C459.693,507.373,456.28,510.787,451.16,510.787z M67.16,493.72h375.467V195.053h-8.533c-3.413,0-5.973-1.707-7.68-4.267 l-43.52-75.093l-128-64.853l-128,64.853l-43.52,75.093c-1.707,2.56-4.267,4.267-7.68,4.267H67.16V493.72z"></path> </g> </g></svg>
+              </div>
+              <div className="farm__text">
+                <p className="farm__name">
+                  <b>ID:</b> {farm.idFarm.toString().substring(0,10)}...{farm.idFarm.toString().substring(farm.idFarm.toString().length - 10)}
+                </p>
+                <div className="farm__text-btns">
+                  <div className="farm__text-btns-item">
+                    <p>
+                      <b>Capacity</b> lvl: {farm.capacityLvl.toString()} 
+                    </p>
+                    <button className="btn btn_yellow" onClick={(e) => _handleUpgradeCapacityLevel(farm.idFarm, farm.capacityLvl, e)}>  Upgrade </button>
+                  </div>
+                  <div className="farm__text-btns-item">
+                    <p>
+                      <b>Rate</b> lvl: {farm.rateLvl.toString()}
+                    </p>
+                    <button className="btn btn_yellow" onClick={(e) => _handleUpgradeRateLevel(farm.idFarm, farm.rateLvl, e)}> Upgrade </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="farm__bottom">
+            <button className="btn" onClick={(e) => _handleClaimRewards(farm.idFarm, e)}> Claim 
+              <span>{Math.round(_calculateCapacity(farm))}</span>
+              <div style={{ width: `${_calculateCapacity(farm)}%` }} className={_calculateCapacity(farm) === 100 ? "bg full" : "bg"}></div>
+            </button>
+          </div>
+          {/* <div className="farm__action">
             <button onClick={(e) => _handleSellFarm(farm.idFarm,e)}> Sell Farm </button>
-            <br />
-
-          </>
+          </div> */}
         </li>
       );
     });
@@ -361,8 +433,9 @@ export default function Home() {
   };
 
 
+
   return (
-    <main>
+    <main className="container">
       {!currentConnection?.signer && (
         <ConnectWallet
           connectWallet={_connectWallet}
@@ -372,7 +445,12 @@ export default function Home() {
       )}
 
       {currentConnection?.signer && (
-        <p>Your address: {currentConnection.signer.address}</p>
+        <p style={{marginBottom: '10px'}}>
+          <span className="address">
+            {currentConnection.signer.address.substring(0,5)}...{currentConnection.signer.address.substring(currentConnection.signer.address.length - 5)}
+            <img src='https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/MetaMask_Fox.svg/512px-MetaMask_Fox.svg.png'/>
+          </span>
+        </p>
       )}
 
       {txBeingSent && <WaitingForTransactionMessage txHash={txBeingSent} />}
@@ -385,14 +463,21 @@ export default function Home() {
       )}
 
       {currentBalance && (
-        <p>Your balance: {ethers.formatEther(currentBalance)} CRT</p>
+        <p style={{marginBottom: '10px'}}><b>Your balance:</b> {ethers.formatEther(currentBalance)} CRT</p>
       )}
       
-      {currentConnection && (<button onClick={(e) => _handleBuyFarm(e)}>
-        Buy
+      {currentConnection && (<button className="btn btn_yellow" onClick={(e) => _handleBuyFarm(e)}>
+        Buy Farm
       </button>)}
 
-      {farms!!.length > 0 && <ul>{availableFarms()}</ul>}
+      {farms!!.length > 0 && <ul className="farms">{availableFarms()}</ul>}
+
+
+      <div className="alerts">
+        {alerts.map((alert) => (
+          <Alert key={alert.id} id={alert.id} type={alert.type} message={alert.message} onClose={removeAlert} />
+        ))}
+      </div>
 
     </main>
   );
