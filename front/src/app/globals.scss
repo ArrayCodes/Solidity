@@ -239,7 +239,7 @@ body {
       }
     }
     & span {
-      width: 40px;
+      width: 200px;
     }
   }
   &__sale {
@@ -263,7 +263,7 @@ body {
 }
 
 .alerts {
-  position: absolute;
+  position: fixed;
   z-index: 5;
   right: 0;
   bottom: 20px;

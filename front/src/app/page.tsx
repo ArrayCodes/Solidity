@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, FormEvent } from "react";
+import React, { useState, useEffect, FormEvent, useRef } from "react";
 
 import { ethers } from "ethers";
 import { P2EFarm__factory, Carrot__factory } from "@/typechain";
@@ -10,12 +10,11 @@ import type { BrowserProvider } from "ethers";
 import ConnectWallet from "@/components/ConnectWallet";
 import WaitingForTransactionMessage from "@/components/WaitingForTransactionMessage";
 import TransactionErrorMessage from "@/components/TransactionErrorMessage";
-
-import metamaskIcon from '@/assets/images/icons/MetaMask_Fox.svg.png'
+import Alert from "@/components/AlertProps";
 
 const SEPOLIA_NETWORK_ID = "0xaa36a7";
-const P2E_FARM_ADDRESS = "0xEC23e89F986522Ce570f13413C069EeF7536E70D"
-const TOKEN_ADDRESS = "0x0388DdFE3627F48b084782EC291A4D00c6f08b6a"
+const P2E_FARM_ADDRESS = "0xFDb12306A0a6CBC6d6136E1AD2B8CBeEEdd5124F"
+const TOKEN_ADDRESS = "0xe9a5b2Ca78841EB2C7135aEB616Ac0851093957c"
 
 declare let window: any;
 
@@ -40,7 +39,6 @@ export default function Home() {
   const [txBeingSent, setTxBeingSent] = useState<string>();
   const [transactionError, setTransactionError] = useState<any>();
   const [currentBalance, setCurrentBalance] = useState<string>();
-  const [isOwner, setIsOwner] = useState<boolean>(false);
   const [index, setIndex] = useState<Number>();
   const [farms, setFarms] = useState<FarmProps[]>([]);
   const [currentConnection, setCurrentConnection] = useState<CurrentConnectionProps>();
@@ -88,6 +86,8 @@ export default function Home() {
     //addSuccess('Вы успешно подключились')
     if (window.ethereum === undefined) {
       setNetworkError("Please install Metamask!");
+      addError("Please install Metamask!");
+
 
       return;
     }
@@ -118,34 +118,12 @@ export default function Home() {
     });
   };
 
-  interface AlertProps {
-    id: number;
-    type: string;
-    message: string;
-    onClose: (id: number) => void;
-  }
   
-  const Alert: React.FC<AlertProps> = ({ id, type, message, onClose }) => {
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        onClose(id);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }, [id, onClose]);
   
-    const handleClose = () => {
-      onClose(id);
-    };
   
-    return (
-      <div className={`alert ${type}`}>
-        <span>{message}</span>
-        <button className="close-alert" onClick={handleClose}>
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="Menu / Close_LG"> <path id="Vector" d="M21 21L12 12M12 12L3 3M12 12L21.0001 3M12 12L3 21.0001" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g> </g></svg>
-        </button>
-      </div>
-    );
-  };
+  
+  
+  
 
   const [alerts, setAlerts] = useState<{ id: number; type: string; message: string }[]>([]);
 
@@ -156,8 +134,13 @@ export default function Home() {
       newAlerts.shift(); // Удаляем первый элемент, если количество больше 5
     }
     setAlerts(newAlerts);
+  
+    // Добавляем таймер для удаления алерта через 5 секунд
+    setTimeout(() => {
+      removeAlert(newId);
+    }, 5000);
   };
-
+  
   const addSuccess = (message: string) => {
     const newId = alerts.length ? alerts[alerts.length - 1].id + 1 : 1;
     const newAlerts = [...alerts, { id: newId, type: "success", message }];
@@ -165,7 +148,14 @@ export default function Home() {
       newAlerts.shift(); // Удаляем первый элемент, если количество больше 5
     }
     setAlerts(newAlerts);
+  
+    // Добавляем таймер для удаления алерта через 5 секунд
+    setTimeout(() => {
+      removeAlert(newId);
+    }, 5000);
   };
+  
+  
 
   const removeAlert = (id: number) => {
     const filteredAlerts = alerts.filter((alert) => alert.id !== id);
@@ -190,14 +180,11 @@ export default function Home() {
       method: "eth_chainId",
     });
 
-    console.log(chosenChainId)
-
     if (chosenChainId === SEPOLIA_NETWORK_ID) {
       return true;
     }
 
-    // addError("Произошла ошибка, повторите попытку!");
-    // setError("Please connect to Sepolia network (https://sepolia.infura.io/v3/)!");
+    addError("Please connect to Sepolia network (https://sepolia.infura.io/v3/)!");
 
     return false;
   };
@@ -207,7 +194,6 @@ export default function Home() {
     setTransactionError(undefined);
     setTxBeingSent(undefined);
     setCurrentBalance(undefined);
-    setIsOwner(false);
     setCurrentConnection({
       provider: undefined,
       signer: undefined,
@@ -249,14 +235,22 @@ export default function Home() {
       const response = await currentConnection.p2e_game.buyFarm();
       setTxBeingSent(response.hash);
       await response.wait();
-
+      
     } catch (err) {
       console.error(err);
+      addError("Произошла ошибка, повторите попытку!");
 
-      setTransactionError(err);
     } finally {
       setTxBeingSent(undefined);
     }
+  };
+
+  const _currentCostUpgradeMaxCapacity = async (capacityLevel: ethers.BigNumberish,) => {
+    return await currentConnection!!.p2e_game!!.currentCostUpgradeMaxCapacity(capacityLevel)
+  };
+
+  const _currentCostUpgradeRewardRate = async (rateLvl: ethers.BigNumberish,) => {
+    return await currentConnection!!.p2e_game!!.currentCostUpgradeRewardRate(rateLvl)
   };
 
   const _handleUpgradeCapacityLevel = async (
@@ -271,7 +265,7 @@ export default function Home() {
     }
 
     try {
-      await currentConnection.token.approve(await currentConnection.p2e_game.getAddress(), await currentConnection.p2e_game.currentCostUpgradeMaxCapacity(capacityLevel))
+      await currentConnection.token.approve(await currentConnection.p2e_game.getAddress(), await _currentCostUpgradeMaxCapacity(capacityLevel))
 
       const response = await currentConnection.p2e_game.upgradeMaxCapacity(idFarm);
       setTxBeingSent(response.hash);
@@ -281,7 +275,6 @@ export default function Home() {
       addError("Произошла ошибка, повторите попытку!");
       console.error(err);
 
-      setTransactionError(err);
     } finally {
       setTxBeingSent(undefined);
     }
@@ -299,7 +292,7 @@ export default function Home() {
     }
 
     try {
-      await currentConnection.token.approve(await currentConnection.p2e_game.getAddress(), await currentConnection.p2e_game.currentCostUpgradeRewardRate(rateLvl))
+      await currentConnection.token.approve(await currentConnection.p2e_game.getAddress(), await _currentCostUpgradeRewardRate(rateLvl))
 
       const response = await currentConnection.p2e_game.upgradeRewardRate(idFarm);
       setTxBeingSent(response.hash);
@@ -307,8 +300,8 @@ export default function Home() {
 
     } catch (err) {
       console.error(err);
+      addError("Произошла ошибка, повторите попытку!");
 
-      setTransactionError(err);
     } finally {
       setTxBeingSent(undefined);
     }
@@ -318,7 +311,7 @@ export default function Home() {
     farm: FarmProps,
   ) => {
     if (!currentConnection?.p2e_game || !currentConnection?.signer || !currentConnection?.token) {
-      return false;
+      return {rewards: 0, calculatedCapacity: 0, calculatedRewardRate: 0};
     }
 
     const elapsedTime = new Date().getTime() / 1000 - Number(farm.lastClaimTime);
@@ -334,7 +327,7 @@ export default function Home() {
 
     let rewards = elapsedTime/CLAIM_INTERVAL * calculatedRewardRate
     rewards = Math.min(rewards, calculatedCapacity);
-    return rewards;
+    return {rewards, calculatedCapacity, calculatedRewardRate};
   };
  
   const _handleClaimRewards = async (
@@ -354,8 +347,8 @@ export default function Home() {
 
     } catch (err) {
       console.error(err);
+      addError("Произошла ошибка, повторите попытку!");
 
-      setTransactionError(err);
     } finally {
       setTxBeingSent(undefined);
     }
@@ -378,12 +371,15 @@ export default function Home() {
 
     } catch (err) {
       console.error(err);
+      addError("Произошла ошибка, повторите попытку!");
 
-      setTransactionError(err);
     } finally {
       setTxBeingSent(undefined);
     }
   };
+
+  const MAX_CAPACITY_UPGRADE_COST = 200;
+  const REWARD_RATE_UPGRADE_COST = 100;
 
   const availableFarms = () => {
     const farmsList = farms.map((farm) => {
@@ -397,20 +393,20 @@ export default function Home() {
               </div>
               <div className="farm__text">
                 <p className="farm__name">
-                  <b>ID:</b> {farm.idFarm.toString().substring(0,10)}...{farm.idFarm.toString().substring(farm.idFarm.toString().length - 10)}
+                  <b>ID:</b> {farm.idFarm.toString().substring(0,14)}...{farm.idFarm.toString().substring(farm.idFarm.toString().length - 14)}
                 </p>
                 <div className="farm__text-btns">
                   <div className="farm__text-btns-item">
                     <p>
                       <b>Capacity</b> lvl: {farm.capacityLvl.toString()} 
                     </p>
-                    <button className="btn btn_yellow" onClick={(e) => _handleUpgradeCapacityLevel(farm.idFarm, farm.capacityLvl, e)}>  Upgrade </button>
+                    <button className="btn btn_yellow" onClick={(e) => _handleUpgradeCapacityLevel(farm.idFarm, farm.capacityLvl, e) }>  Upgrade {MAX_CAPACITY_UPGRADE_COST * Number(farm.capacityLvl)} <img src='https://i.ibb.co/0Bt8Bn5/icon.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} />  </button>
                   </div>
                   <div className="farm__text-btns-item">
                     <p>
                       <b>Rate</b> lvl: {farm.rateLvl.toString()}
                     </p>
-                    <button className="btn btn_yellow" onClick={(e) => _handleUpgradeRateLevel(farm.idFarm, farm.rateLvl, e)}> Upgrade </button>
+                    <button className="btn btn_yellow" onClick={(e) => _handleUpgradeRateLevel(farm.idFarm, farm.rateLvl, e)}> Upgrade {REWARD_RATE_UPGRADE_COST * Number(farm.rateLvl)} <img src='https://i.ibb.co/0Bt8Bn5/icon.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} /> </button>
                   </div>
                 </div>
               </div>
@@ -418,8 +414,8 @@ export default function Home() {
           </div>
           <div className="farm__bottom">
             <button className="btn" onClick={(e) => _handleClaimRewards(farm.idFarm, e)}> Claim 
-              <span>{Math.round(_calculateCapacity(farm))}</span>
-              <div style={{ width: `${_calculateCapacity(farm)}%` }} className={_calculateCapacity(farm) === 100 ? "bg full" : "bg"}></div>
+              <span>{Math.round(_calculateCapacity(farm).rewards)}/{_calculateCapacity(farm).calculatedCapacity} (+{_calculateCapacity(farm).calculatedRewardRate/10}/sec) </span>
+              <div style={{ width: `${(_calculateCapacity(farm).rewards / _calculateCapacity(farm).calculatedCapacity)* 100}%` }} className={(_calculateCapacity(farm).rewards / _calculateCapacity(farm).calculatedCapacity)* 100 === 100 ? "bg full" : "bg"}></div>
             </button>
           </div>
           {/* <div className="farm__action">
@@ -431,6 +427,54 @@ export default function Home() {
 
     return farmsList;
   };
+
+
+  const _addToken = async () => {
+    if (!currentConnection?.p2e_game || !currentConnection?.signer || !currentConnection?.token) {
+      return false;
+    }
+
+    const tokenAddress = "0xe9a5b2Ca78841EB2C7135aEB616Ac0851093957c";
+    const tokenSymbol = "CRT";
+    const tokenDecimals = 18;
+    const tokenImage = "https://ibb.co/5GncnTQ";
+    
+    try {
+        // 'wasAdded' is a boolean. Like any RPC method, an error can be thrown.
+        const wasAdded = await window.ethereum.request({
+            method: "wallet_watchAsset",
+            params: {
+                type: "ERC20",
+                options: {
+                    // The address of the token.
+                    address: tokenAddress,
+                    // A ticker symbol or shorthand, up to 5 characters.
+                    symbol: tokenSymbol,
+                    // The number of decimals in the token.
+                    decimals: tokenDecimals,
+                    // A string URL of the token logo.
+                    image: tokenImage,
+                },
+            },
+        });
+    
+        if (wasAdded) {
+            console.log("Thanks for your interest!");
+        } else {
+            console.log("Your loss!");
+        }
+    } catch (error) {
+        console.log(error);
+    }
+    
+    
+  };
+
+    const _openWebsite = () => {
+        // Открываем сайт в новой вкладке браузера
+        window.open("https://app.uniswap.org/swap", "_blank");
+    };
+
 
 
 
@@ -445,12 +489,16 @@ export default function Home() {
       )}
 
       {currentConnection?.signer && (
-        <p style={{marginBottom: '10px'}}>
-          <span className="address">
-            {currentConnection.signer.address.substring(0,5)}...{currentConnection.signer.address.substring(currentConnection.signer.address.length - 5)}
-            <img src='https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/MetaMask_Fox.svg/512px-MetaMask_Fox.svg.png'/>
-          </span>
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <p style={{ marginBottom: '10px', marginRight: '10px' }}>
+            <span className="address">
+              {currentConnection.signer.address.substring(0,5)}...{currentConnection.signer.address.substring(currentConnection.signer.address.length - 5)}
+              <img src='https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/MetaMask_Fox.svg/512px-MetaMask_Fox.svg.png'/>
+            </span>
+          </p>
+          <button className="btn btn_yellow" style={{ marginRight: '15px' }} onClick={_addToken}> Add token </button>
+          <button className="btn btn_yellow" onClick={_openWebsite}> Buy/Sell token </button>
+        </div>
       )}
 
       {txBeingSent && <WaitingForTransactionMessage txHash={txBeingSent} />}
@@ -463,11 +511,15 @@ export default function Home() {
       )}
 
       {currentBalance && (
-        <p style={{marginBottom: '10px'}}><b>Your balance:</b> {ethers.formatEther(currentBalance)} CRT</p>
+        <p style={{ marginBottom: '10px' }}>
+          <b>Your balance: </b> 
+          
+          {Number(ethers.formatEther(currentBalance)).toFixed(1)} <img src='https://i.ibb.co/0Bt8Bn5/icon.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} /> CRT
+        </p>
       )}
       
-      {currentConnection && (<button className="btn btn_yellow" onClick={(e) => _handleBuyFarm(e)}>
-        Buy Farm
+      {currentConnection?.signer && (<button className="btn btn_yellow" onClick={(e) => _handleBuyFarm(e)}>
+        Buy Farm 100<img src='https://i.ibb.co/0Bt8Bn5/icon.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} />
       </button>)}
 
       {farms!!.length > 0 && <ul className="farms">{availableFarms()}</ul>}
@@ -482,3 +534,4 @@ export default function Home() {
     </main>
   );
 }
+
