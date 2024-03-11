@@ -10,7 +10,7 @@ import type { BrowserProvider } from "ethers";
 import ConnectWallet from "@/components/ConnectWallet";
 import WaitingForTransactionMessage from "@/components/WaitingForTransactionMessage";
 import TransactionErrorMessage from "@/components/TransactionErrorMessage";
-import Alert from "@/components/AlertProps";
+import AlertContainer from "@/components/AlertProps";
 
 const SEPOLIA_NETWORK_ID = "0xaa36a7";
 const P2E_FARM_ADDRESS = "0xFDb12306A0a6CBC6d6136E1AD2B8CBeEEdd5124F"
@@ -34,6 +34,7 @@ type FarmProps = {
   lastClaimTime: ethers.BigNumberish
 };
 
+
 export default function Home() {
   const [networkError, setNetworkError] = useState<string>();
   const [txBeingSent, setTxBeingSent] = useState<string>();
@@ -42,6 +43,32 @@ export default function Home() {
   const [index, setIndex] = useState<Number>();
   const [farms, setFarms] = useState<FarmProps[]>([]);
   const [currentConnection, setCurrentConnection] = useState<CurrentConnectionProps>();
+
+  const _testAlert = () => {
+    addAlert('error', "Please install Metamask!");
+  }
+  
+  const [alerts, setAlerts] = useState([]);
+
+  const addAlert = (type: string, message: string) => {
+    const newAlert = {
+      id: Date.now(),
+      type: type,
+      message: message,
+    };
+  
+    let updatedAlerts = [...alerts, newAlert]; // Создаем новый массив, включающий новый алерт
+  
+    if (updatedAlerts.length > 5) {
+      updatedAlerts = updatedAlerts.slice(1);
+    }
+  
+    setAlerts(updatedAlerts); // Обновляем состояние алертов
+  };
+  
+  const handleAlertDismiss = (updatedAlerts: Alert[]) => {
+    setAlerts(updatedAlerts); // Обновляем состояние массива алертов в родительском компоненте
+  };
 
   useEffect(() => {
     (async () => {
@@ -86,7 +113,7 @@ export default function Home() {
     //addSuccess('Вы успешно подключились')
     if (window.ethereum === undefined) {
       setNetworkError("Please install Metamask!");
-      addError("Please install Metamask!");
+      addAlert('error', "Please install Metamask!");
 
 
       return;
@@ -118,50 +145,6 @@ export default function Home() {
     });
   };
 
-  
-  
-  
-  
-  
-  
-
-  const [alerts, setAlerts] = useState<{ id: number; type: string; message: string }[]>([]);
-
-  const addError = (message: string) => {
-    const newId = alerts.length ? alerts[alerts.length - 1].id + 1 : 1;
-    const newAlerts = [...alerts, { id: newId, type: "error", message }];
-    if (newAlerts.length > 5) {
-      newAlerts.shift(); // Удаляем первый элемент, если количество больше 5
-    }
-    setAlerts(newAlerts);
-  
-    // Добавляем таймер для удаления алерта через 5 секунд
-    setTimeout(() => {
-      removeAlert(newId);
-    }, 5000);
-  };
-  
-  const addSuccess = (message: string) => {
-    const newId = alerts.length ? alerts[alerts.length - 1].id + 1 : 1;
-    const newAlerts = [...alerts, { id: newId, type: "success", message }];
-    if (newAlerts.length > 5) {
-      newAlerts.shift(); // Удаляем первый элемент, если количество больше 5
-    }
-    setAlerts(newAlerts);
-  
-    // Добавляем таймер для удаления алерта через 5 секунд
-    setTimeout(() => {
-      removeAlert(newId);
-    }, 5000);
-  };
-  
-  
-
-  const removeAlert = (id: number) => {
-    const filteredAlerts = alerts.filter((alert) => alert.id !== id);
-    setAlerts(filteredAlerts);
-  };
-
   const _initialize = async (selectedAccount: string) => {
     const provider = new ethers.BrowserProvider(window.ethereum);
     const signer = await provider.getSigner(selectedAccount);
@@ -185,7 +168,6 @@ export default function Home() {
     }
   
     try {
-      console.log(123)
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{
@@ -194,6 +176,7 @@ export default function Home() {
       });
       return true;
     } catch (error) {
+      addAlert('error', 'подтвердите действие в Metamask')
       console.error("Failed to switch network:", error);
       return false;
     }
@@ -249,7 +232,7 @@ export default function Home() {
       
     } catch (err) {
       console.error(err);
-      addError("Произошла ошибка, повторите попытку!");
+      addAlert('error', "Произошла ошибка, повторите попытку!");
 
     } finally {
       setTxBeingSent(undefined);
@@ -283,7 +266,7 @@ export default function Home() {
       await response.wait();
 
     } catch (err) {
-      addError("Произошла ошибка, повторите попытку!");
+      addAlert('error', "Произошла ошибка, повторите попытку!");
       console.error(err);
 
     } finally {
@@ -311,7 +294,7 @@ export default function Home() {
 
     } catch (err) {
       console.error(err);
-      addError("Произошла ошибка, повторите попытку!");
+      addAlert('error', "Произошла ошибка, повторите попытку!");
 
     } finally {
       setTxBeingSent(undefined);
@@ -358,7 +341,7 @@ export default function Home() {
 
     } catch (err) {
       console.error(err);
-      addError("Произошла ошибка, повторите попытку!");
+      addAlert('error', "Произошла ошибка, повторите попытку!");
 
     } finally {
       setTxBeingSent(undefined);
@@ -382,7 +365,7 @@ export default function Home() {
 
     } catch (err) {
       console.error(err);
-      addError("Произошла ошибка, повторите попытку!");
+      addAlert('error', "Произошла ошибка, повторите попытку!");
 
     } finally {
       setTxBeingSent(undefined);
@@ -438,7 +421,6 @@ export default function Home() {
 
     return farmsList;
   };
-
 
   const _addToken = async () => {
     if (!currentConnection?.p2e_game || !currentConnection?.signer || !currentConnection?.token) {
@@ -500,14 +482,14 @@ export default function Home() {
       )}
 
       {currentConnection?.signer && (
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <p style={{ marginBottom: '10px', marginRight: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '15px'}}>
+          <p>
             <span className="address">
               {currentConnection.signer.address.substring(0,5)}...{currentConnection.signer.address.substring(currentConnection.signer.address.length - 5)}
               <img src='https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/MetaMask_Fox.svg/512px-MetaMask_Fox.svg.png'/>
             </span>
           </p>
-          <button className="btn btn_yellow" style={{ marginRight: '15px' }} onClick={_addToken}> Add token </button>
+          <button className="btn btn_yellow" onClick={_addToken}> Add token </button>
           <button className="btn btn_yellow" onClick={_openWebsite}> Buy/Sell token </button>
         </div>
       )}
@@ -536,12 +518,12 @@ export default function Home() {
       {farms!!.length > 0 && <ul className="farms">{availableFarms()}</ul>}
 
 
-      <div className="alerts">
+      {/* <div className="alerts">
         {alerts.map((alert) => (
           <Alert key={alert.id} id={alert.id} type={alert.type} message={alert.message} onClose={removeAlert} />
         ))}
-      </div>
-
+      </div> */}
+      <AlertContainer alerts={alerts} onAlertDismiss={handleAlertDismiss} />
     </main>
   );
 }

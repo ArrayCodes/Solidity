@@ -8,7 +8,7 @@ const WaitingForTransactionMessage: React.FunctionComponent<
   WaitingForTransactionMessageProps
 > = ({ txHash }) => {
   return (
-    <div>
+    <div className="waiting">
       Waiting for transaction <strong>{txHash}</strong>
     </div>
   );
