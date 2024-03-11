@@ -183,11 +183,22 @@ export default function Home() {
     if (chosenChainId === SEPOLIA_NETWORK_ID) {
       return true;
     }
-
-    addError("Please connect to Sepolia network (https://sepolia.infura.io/v3/)!");
-
-    return false;
+  
+    try {
+      console.log(123)
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{
+          chainId: SEPOLIA_NETWORK_ID,
+        }]
+      });
+      return true;
+    } catch (error) {
+      console.error("Failed to switch network:", error);
+      return false;
+    }
   };
+  
 
   const _resetState = () => {
     setNetworkError(undefined);
@@ -400,13 +411,13 @@ export default function Home() {
                     <p>
                       <b>Capacity</b> lvl: {farm.capacityLvl.toString()} 
                     </p>
-                    <button className="btn btn_yellow" onClick={(e) => _handleUpgradeCapacityLevel(farm.idFarm, farm.capacityLvl, e) }>  Upgrade {MAX_CAPACITY_UPGRADE_COST * Number(farm.capacityLvl)} <img src='https://i.ibb.co/0Bt8Bn5/icon.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} />  </button>
+                    <button className="btn btn_yellow" onClick={(e) => _handleUpgradeCapacityLevel(farm.idFarm, farm.capacityLvl, e) }>  Upgrade {MAX_CAPACITY_UPGRADE_COST * Number(farm.capacityLvl)} <img src='https://i.ibb.co/ZBbT7rq/output-onlinepngtools.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} />  </button>
                   </div>
                   <div className="farm__text-btns-item">
                     <p>
                       <b>Rate</b> lvl: {farm.rateLvl.toString()}
                     </p>
-                    <button className="btn btn_yellow" onClick={(e) => _handleUpgradeRateLevel(farm.idFarm, farm.rateLvl, e)}> Upgrade {REWARD_RATE_UPGRADE_COST * Number(farm.rateLvl)} <img src='https://i.ibb.co/0Bt8Bn5/icon.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} /> </button>
+                    <button className="btn btn_yellow" onClick={(e) => _handleUpgradeRateLevel(farm.idFarm, farm.rateLvl, e)}> Upgrade {REWARD_RATE_UPGRADE_COST * Number(farm.rateLvl)} <img src='https://i.ibb.co/ZBbT7rq/output-onlinepngtools.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} /> </button>
                   </div>
                 </div>
               </div>
@@ -437,7 +448,7 @@ export default function Home() {
     const tokenAddress = "0xe9a5b2Ca78841EB2C7135aEB616Ac0851093957c";
     const tokenSymbol = "CRT";
     const tokenDecimals = 18;
-    const tokenImage = "https://ibb.co/5GncnTQ";
+    const tokenImage = "https://i.ibb.co/8zMVPVc/output-onlinepngtools.png";
     
     try {
         // 'wasAdded' is a boolean. Like any RPC method, an error can be thrown.
@@ -514,12 +525,12 @@ export default function Home() {
         <p style={{ marginBottom: '10px' }}>
           <b>Your balance: </b> 
           
-          {Number(ethers.formatEther(currentBalance)).toFixed(1)} <img src='https://i.ibb.co/0Bt8Bn5/icon.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} /> CRT
+          {Number(ethers.formatEther(currentBalance)).toFixed(1)} <img src='https://i.ibb.co/ZBbT7rq/output-onlinepngtools.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} /> CRT
         </p>
       )}
       
       {currentConnection?.signer && (<button className="btn btn_yellow" onClick={(e) => _handleBuyFarm(e)}>
-        Buy Farm 100<img src='https://i.ibb.co/0Bt8Bn5/icon.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} />
+        Buy Farm 100<img src='https://i.ibb.co/ZBbT7rq/output-onlinepngtools.png' alt='CRT Icon' style={{ width: '30px', height: '30px', verticalAlign: 'middle' , marginRight: '-7x'}} />
       </button>)}
 
       {farms!!.length > 0 && <ul className="farms">{availableFarms()}</ul>}
